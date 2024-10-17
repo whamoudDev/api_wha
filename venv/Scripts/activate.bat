@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\Workspace\SynapsiaWorkspace\Spotijob\api_wha\venv
+set VIRTUAL_ENV=D:\Workspace\WalidWorkspace\FastApiTest\api_wha\venv
 
 if not defined PROMPT set PROMPT=$P$G
 
