@@ -1,5 +1,8 @@
-from fastapi import APIRouter, HTTPException # type: ignore
+from fastapi import APIRouter, Depends, HTTPException # type: ignore
+from db import get_db
+from quizzes import models
 from quizzes.schemas import Quiz, QuizInput
+from sqlalchemy.orm import Session
 
 quizzes_router = APIRouter()
 
@@ -20,8 +23,8 @@ def get_quiz_by_id(id : int) -> Quiz | None:
     return None
 
 @quizzes_router.get("/quizzes")
-def read_quizzes() -> list[Quiz]:
-    return fake_quizzes
+def read_quizzes(db: Session= Depends(get_db)) -> list[Quiz]:
+    return db.query(models.Quizz).all()
 
 @quizzes_router.get("/quiz/{id}")
 def read_quiz(id : int) -> Quiz:
@@ -31,10 +34,14 @@ def read_quiz(id : int) -> Quiz:
     return quiz
 
 @quizzes_router.post("/add")
-def add_quizzes(quiz_input: QuizInput) -> Quiz:
-    quiz = Quiz(id=len(fake_quizzes)+1, title=quiz_input.title , tags=quiz_input.tags)
-    fake_quizzes.append(quiz)
-    return quiz
+def add_quizzes(quiz_input: QuizInput, db: Session= Depends(get_db)) -> Quiz:
+
+    created_quiz = models.Quizz(title=quiz_input.title, tags=quiz_input.tags)
+    db.add(created_quiz)
+    db.commit()
+    db.refresh(created_quiz)
+    
+    return created_quiz
 
 @quizzes_router.patch("/edit/{id}")
 def update_quiz(id : int, input : QuizInput) -> Quiz :

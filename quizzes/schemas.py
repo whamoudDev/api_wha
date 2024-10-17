@@ -7,6 +7,9 @@ class Quiz(BaseModel):
     tags: list[str] = []
     questions: list[Question]= []
 
+class Config:
+    orm_mode = True
+
 class QuizInput(BaseModel):
     title: str
     tags: list[str] = []
