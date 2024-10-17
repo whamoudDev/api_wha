@@ -1,21 +1,53 @@
-from fastapi import APIRouter, HTTPException # type: ignore
+from fastapi import APIRouter, Depends, HTTPException # type: ignore
+from db import get_db
+from questions import models
 from questions.schemas import Question, QuestionInput
 from quizzes.crud import get_quiz_by_id # type: ignore
+from sqlalchemy.orm import Session
 
 questions_router = APIRouter()
 
+# Ancienne version sans db
+# @questions_router.post("/quizzes/{quiz_id}/questions")
+# def create_question(quiz_id: int, create_question_input: QuestionInput) ->list[Question]:
+#     quiz= get_quiz_by_id(quiz_id)
+#     if quiz is None:
+#         raise HTTPException(404, "Quiz not found")
+#
+# Notion de décompression de dictionnaire **create_questi.....dict()
+#     question = Question(**create_question_input.dict(), id=len(quiz.questions)+1) 
+#     quiz.questions.append(question)
+#     return quiz.questions
+
 @questions_router.post("/quizzes/{quiz_id}/questions")
-def create_question(quiz_id: int, create_question_input: QuestionInput) ->list[Question]:
-    quiz= get_quiz_by_id(quiz_id)
+def create_question(quiz_id: int, create_question_input: QuestionInput, db: Session= Depends(get_db)) ->Question:
+    quiz= get_quiz_by_id(quiz_id, db)
     if quiz is None:
         raise HTTPException(404, "Quiz not found")
-    question = Question(**create_question_input.dict(), id=len(quiz.questions)+1)
-    quiz.questions.append(question)
-    return quiz.questions
+    
+    created_question = models.Question(
+        quiz_id=quiz_id,
+        text=create_question_input.text
+    )
+
+    db.add(created_question)
+    db.commit()
+    db.refresh(created_question)
+
+    answers = []
+    for answer_input in create_question_input.answers:
+        answers.append(
+            models.Answer(question_id=create_question.id, **answer_input.dict())
+        ) 
+
+    db.add_all(answers)
+    db.commit()
+
+    return created_question
 
 @questions_router.get("/quizzes/{quiz_id}/questions")
-def get_questions(quiz_id: int)->list[Question]:
-    quiz = get_quiz_by_id(quiz_id)
+def get_questions(quiz_id: int, db: Session= Depends(get_db))->list[Question]:
+    quiz = get_quiz_by_id(quiz_id, db)
     if quiz is None:
         raise HTTPException(404, "Quiz not found")
     return quiz.questions
